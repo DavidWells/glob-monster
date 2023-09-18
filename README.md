@@ -4,6 +4,12 @@ File matcher
 
 String globs match via [micromatch](https://github.com/micromatch/micromatch) and [is-glob](https://github.com/micromatch/is-glob/).
 
+Package names
+
+- https://www.npmjs.com/package/get-files
+- https://www.npmjs.com/package/filematcher
+- https://www.npmjs.com/package/filematch
+
 ## Install
 
 ```

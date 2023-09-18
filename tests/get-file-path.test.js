@@ -19,7 +19,7 @@ const fixture = [
 
 /* Create temp files */
 test.before(() => {
-  console.log('SETUP')
+  console.log('1. SETUP temp files')
   if (!fs.existsSync(TEMP_DIR)) {
 		fs.mkdirSync(TEMP_DIR)
 	}
@@ -39,7 +39,10 @@ test('Exports API', () => {
 test('Finds file from file', async () => {
   const startDir = path.resolve(__dirname, 'index.test.js')
   const file = await findUp(startDir, 'README.md')
-  // console.log('file', file)
+  /*
+  console.log('startAt', startDir)
+  console.log('file', file)
+  /** */
   assert.ok(file)
   assert.equal(path.basename(file || ''), 'README.md')
 })
@@ -47,8 +50,22 @@ test('Finds file from file', async () => {
 test('Finds file from dir', async () => {
   const startDir = path.resolve(__dirname, '../')
   const file = await findUp(startDir, 'README.md')
+  const baseName = path.basename(file || '')
+  /*
+  console.log('startAt', startDir)
+  console.log('file', file)
+  /** */
   assert.ok(file)
-  assert.equal(path.basename(file || ''), 'README.md')
+  assert.equal(baseName, 'README.md')
+
+  const startDirTwo = path.resolve(__dirname)
+  const fileTwo = await findUp(startDirTwo, 'README.md')
+  /*
+  console.log('startDirTwo', startDirTwo)
+  console.log('fileTwo', fileTwo)
+  /** */
+  assert.ok(fileTwo)
+  assert.equal(baseName, 'README.md')
 })
 
 test('glob', async t => {
@@ -395,7 +412,9 @@ test('Opts - relativePaths. return relative paths', async () => {
       /node_modules/,
     ],
   })
-  // console.log('files', files)
+  //*
+  console.log('files', files)
+  /** */
   assert.equal(files, [
     'README.md',
     'tests/fixtures/md/basic.md',
@@ -460,7 +479,7 @@ async function getIgnores(dir){
 
 /* Cleanup temp files */
 test.after(() => {
-  console.log('\nCLEANUP complete')
+  console.log('\nTest CLEANUP complete')
   for (const element of fixture) {
 		fs.unlinkSync(path.join(TEMP_DIR, element))
 		fs.unlinkSync(path.join(TEMP_SUB_DIR, element))

@@ -5,17 +5,24 @@ const isGlob = require('is-glob')
 const isLocalPath = require('is-local-path')
 
 // https://github.com/kgryte/regex-regex/blob/master/lib/index.js
-const REGEX_REGEX = /^\/((?:\\\/|[^\/])+)\/([imgy]*)$/
+// const REGEX_REGEX = /^\/((?:\\\/|[^\/])+)\/([imgy]*)$/
+const REGEX_REGEX = /^\/((?:\\\/|[^\/]|\[\^.*\/*\])+)\/([imgy]*)$/
 const IS_HIDDEN_FILE = /(^|[\\\/])\.[^\\\/\.]/g
+const globRexOpts = {
+  globstar: true,
+  extended: true
+}
 
 function isRegex(thing) {
   return (thing instanceof RegExp)
 }
 
 async function findUp(start, fileName) {
-  const file = await escalade(start, (dir, relativePaths) => {
+  return escalade(start, (dir, relativePaths) => {
+    /*
     console.log('~> dir:', dir);
     console.log('~> relativePaths:', relativePaths);
+    /** */
     // console.log('---')
     if (typeof fileName === 'string' && relativePaths.includes(fileName)) {
       // will be resolved into absolute
@@ -26,7 +33,6 @@ async function findUp(start, fileName) {
       if (found) return found
     }
   })
-  return file
 }
 
 // https://github.com/lukeed/escalade
@@ -61,17 +67,19 @@ async function totalist(dir, callback, pre='') {
 
 function combineRegexPatterns(patterns = [], flags) {
   const patternString = patterns.map((pat) => {
+    console.log('pat', pat)
     if (isRegex(pat)) {
       return pat.source
     } else if (typeof pat === 'string' && REGEX_REGEX.test(pat)) {
       const regexInfo = pat.match(REGEX_REGEX)
-      // console.log('regexInfo', regexInfo)
+      console.log('regexInfo', regexInfo)
       if (regexInfo && regexInfo[1]) {
         let strMatch = regexInfo[1]
+        console.log('strMatch', strMatch)
         let prefix = ''
         let postFix = ''
         if (strMatch[0] === '^') {
-          strMatch = strMatch.substring(1, strMatch.length - 1)
+          strMatch = strMatch.substring(1)
           prefix = '^'
         }
         /* If last char is $ */
@@ -80,10 +88,14 @@ function combineRegexPatterns(patterns = [], flags) {
           postFix = '$'
         }
         // escapeRegexString
-        return prefix + escapeRegexString(strMatch) + postFix
+        const combined = prefix + escapeRegexString(strMatch) + postFix
+        // const combined = prefix + strMatch + postFix
+        console.log('combined', combined)
+        // return prefix + strMatch + postFix
+        return combined
       }
     } else if (isGlob(pat)) {
-      console.log('isGlob pat', pat)
+      // console.log('isGlob pat', pat)
       let finalPattern = pat
       if (pat[0] === '!') {
         finalPattern = pat.substr(1, pat.length - 1)
@@ -93,14 +105,13 @@ function combineRegexPatterns(patterns = [], flags) {
         finalPattern = pat.substr(1, pat.length - 1)
       }
 
-      const result = globrex(finalPattern, {
-        globstar: true,
-        extended: true
-      })
+      const result = globrex(finalPattern, globRexOpts)
       // console.log('result', result)
       return result.regex.source
     }
-    console.log('Fall through', pat)
+    /*
+    console.log('Fall through pattern', pat)
+    /** */
     if (pat === 'node_modules') {
       return pat
     }
@@ -115,7 +126,9 @@ function combineRegexPatterns(patterns = [], flags) {
     // const prefix = (pat[0] === '.') ? '' : '^'
     return '^' + pat + '$'
   }).join('|')
+  //*
   console.log('patternString', patternString)
+  /** */
   return new RegExp(patternString, flags)
 }
 
@@ -124,12 +137,11 @@ function ensureTrailingSlash(str = '') {
 }
 
 function ensureArray(thing) {
-  return (typeof thing === 'string') ? [thing] : thing
+  return Array.isArray(thing) ? thing : [thing]  // (typeof thing === 'string' || isRegex(thing)) ? [thing] : thing
 }
 
 async function globber(globPattern, opts = {}) {
-  const globs = ensureArray(globPattern)
-  opts.patterns = globs
+  opts.patterns = ensureArray(globPattern)
   opts.excludeGitIgnore = (typeof opts.excludeGitIgnore !== 'undefined') ? opts.excludeGitIgnore : true
   const dir = opts.cwd || process.cwd()
   console.log('dir', dir)
@@ -167,14 +179,22 @@ async function getFilePaths(dirName, {
     _findPattern.push(pat)
   }
 
+  //*
+  console.log('FIND patterns', _findPattern)
+  console.log('IGNORE patterns', _ignorePattern)
+  /** */
+
   if (_findPattern && _findPattern.length) {
-    console.log('FIND patterns', _findPattern)
     findPattern = combineRegexPatterns(_findPattern, flags)
   }
   if (_ignorePattern && _ignorePattern.length) {
-    console.log('IGNORE patterns', _ignorePattern)
     ignorePattern = combineRegexPatterns(_ignorePattern, flags)
   }
+
+  //*
+  console.log('findPattern', findPattern)
+  console.log('ignorePattern', ignorePattern)
+  /** */
 
   if (excludeGitIgnore) {
     const gitIgnoreContents = await getGitignoreContents()
@@ -359,7 +379,7 @@ function resolveCommonParent(mainDir = '', fileDir = '') {
   let acc = ''
   let value = ''
   for (let i = 0; i < parts.length; i++) {
-    const element = parts[i];
+    const element = parts[i]
     acc+= ((i) ? '/' : '') + element
     if (fileDir.startsWith(acc)) {
       value = acc
@@ -403,11 +423,16 @@ function escapeRegexString(string) {
 	if (typeof string !== 'string') {
 		throw new TypeError('Expected a string')
 	}
+
+  const match = string.match(/\[([^\]]*)\](.?)/)
+  if (match) {
+    console.log('match', match)
+  }
 	// Escape characters with special meaning either inside or outside character sets.
 	// Use a simple backslash escape when it’s always valid, and a `\xnn` escape when the simpler form would be disallowed by Unicode patterns’ stricter grammar.
 	return string
 		.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&')
-		.replace(/-/g, '\\x2d');
+		.replace(/-/g, '\\x2d')
 }
 
 module.exports = {

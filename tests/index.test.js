@@ -13,23 +13,34 @@ test('Exports API', () => {
   assert.equal(typeof findUp, 'function', 'undefined val')
 })
 
-test.only('return JS', async () => {
+test('return JS', async () => {
   const files = await globber(['**/**.js'], {
     ignore: [
       'node_modules',
       '/tests/fixtures/**.js',
+      /!!.*\.js$/, // multiple-negation/!unicorn.js'
       // '/tests/fixtures/**/**.js',
       // '/tests',
       // './tests',
       // /tests/,
     ],
+    // ignore: /!!.*\.js$/,
     cwd: ROOT_DIR,
     // caseInsensitive: true,
     relativePaths: true,
   })
-  console.log('files', files)
-  // process.exit(1)
-  assert.equal(files, [])
+
+  assert.equal(files, [
+    'cli.js',
+    'index.js',
+    'tests/fixtures/gitignore/bar.js',
+    'tests/fixtures/js/simple.js',
+    // 'tests/fixtures/multiple-negation/!!unicorn.js',
+    'tests/fixtures/multiple-negation/!unicorn.js',
+    'tests/fixtures/negative/foo.js',
+    'tests/get-file-path.test.js',
+    'tests/index.test.js'
+  ])
 })
 
 
@@ -43,7 +54,7 @@ test('Ignore Self', async () => {
   assert.equal(files, [])
 })
 
-test.only('Ignore top patterns', async () => {
+test('Ignore top patterns', async () => {
   const answer = [
     'tests/fixtures/md/basic.md',
     'tests/fixtures/md/broken-inline.md',
@@ -70,6 +81,7 @@ test.only('Ignore top patterns', async () => {
     'tests/fixtures/md/transform-toc.md',
     'tests/fixtures/md/transform-wordCount.md'
   ]
+  /* Ignore **.md */
   const files = await globber(['**/**.md'], {
     ignore: [
       '**.md',
@@ -78,9 +90,13 @@ test.only('Ignore top patterns', async () => {
     cwd: ROOT_DIR,
     relativePaths: true,
   })
-  // console.log('files', files)
+  /*
+  console.log('files', files)
+  process.exit(1)
+  /** */
   assert.equal(files, answer)
 
+  /* Ignore *.md */
   const filesTwo = await globber(['**/**.md'], {
     ignore: [
       '*.md',
@@ -89,9 +105,13 @@ test.only('Ignore top patterns', async () => {
     cwd: ROOT_DIR,
     relativePaths: true,
   })
-  // console.log('files', files)
+  /*
+  console.log('filesTwo', filesTwo)
+  process.exit(1)
+  /** */
   assert.equal(filesTwo, answer)
 
+  /* Ignore './*.{md,mdx}' */
   const filesThree = await globber(['**/**.md'], {
     ignore: [
       './*.{md,mdx}',
@@ -100,18 +120,24 @@ test.only('Ignore top patterns', async () => {
     cwd: ROOT_DIR,
     relativePaths: true,
   })
-  // console.log('files', files)
+  /*
+  console.log('filesThree', filesThree)
+  process.exit(1)
+  /** */
   assert.equal(filesThree, answer)
 
   const filesFour = await globber(['**/**.md'], {
     ignore: [
       /^[^/]*\.mdx?$/,
-      // 'node_modules',
+      'node_modules',
     ],
     cwd: ROOT_DIR,
     relativePaths: true,
   })
+  /*
   console.log('filesFour', filesFour)
+  process.exit(1)
+  /** */
   assert.equal(filesFour, answer)
 })
 
