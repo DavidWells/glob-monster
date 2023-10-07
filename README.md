@@ -1,4 +1,4 @@
-# Filematch
+# glob-monster
 
 File globber that understands globs or regex.
 
@@ -7,7 +7,7 @@ See [tests](./tests/) for more details.
 ## Install
 
 ```
-npm install filematch
+npm install glob-monster
 ```
 
 ## About

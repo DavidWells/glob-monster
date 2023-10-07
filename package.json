@@ -1,5 +1,5 @@
 {
-  "name": "filematch",
+  "name": "glob-monster",
   "version": "0.0.1",
   "description": "File globber that understands regex",
   "main": "index.js",
