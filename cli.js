@@ -24,4 +24,3 @@ globber(
 }).then((files) => {
   console.log('files', files)
 })
-
