@@ -67,15 +67,15 @@ async function totalist(dir, callback, pre='') {
 
 function combineRegexPatterns(patterns = [], flags) {
   const patternString = patterns.map((pat) => {
-    console.log('pat', pat)
+    // console.log('pat', pat)
     if (isRegex(pat)) {
       return pat.source
     } else if (typeof pat === 'string' && REGEX_REGEX.test(pat)) {
       const regexInfo = pat.match(REGEX_REGEX)
-      console.log('regexInfo', regexInfo)
+      // console.log('regexInfo', regexInfo)
       if (regexInfo && regexInfo[1]) {
         let strMatch = regexInfo[1]
-        console.log('strMatch', strMatch)
+        // console.log('strMatch', strMatch)
         let prefix = ''
         let postFix = ''
         if (strMatch[0] === '^') {
@@ -90,7 +90,7 @@ function combineRegexPatterns(patterns = [], flags) {
         // escapeRegexString
         const combined = prefix + escapeRegexString(strMatch) + postFix
         // const combined = prefix + strMatch + postFix
-        console.log('combined', combined)
+        // console.log('combined', combined)
         // return prefix + strMatch + postFix
         return combined
       }
@@ -126,7 +126,7 @@ function combineRegexPatterns(patterns = [], flags) {
     // const prefix = (pat[0] === '.') ? '' : '^'
     return '^' + pat + '$'
   }).join('|')
-  //*
+  /*
   console.log('patternString', patternString)
   /** */
   return new RegExp(patternString, flags)
@@ -144,8 +144,8 @@ async function globber(globPattern, opts = {}) {
   opts.patterns = ensureArray(globPattern)
   opts.excludeGitIgnore = (typeof opts.excludeGitIgnore !== 'undefined') ? opts.excludeGitIgnore : true
   const dir = opts.cwd || process.cwd()
-  console.log('dir', dir)
-  console.log('opts', opts)
+  // console.log('dir', dir)
+  // console.log('opts', opts)
   return getFilePaths(dir, opts)
 }
 
@@ -179,7 +179,7 @@ async function getFilePaths(dirName, {
     _findPattern.push(pat)
   }
 
-  //*
+  /*
   console.log('FIND patterns', _findPattern)
   console.log('IGNORE patterns', _ignorePattern)
   /** */
@@ -191,7 +191,7 @@ async function getFilePaths(dirName, {
     ignorePattern = combineRegexPatterns(_ignorePattern, flags)
   }
 
-  //*
+  /*
   console.log('findPattern', findPattern)
   console.log('ignorePattern', ignorePattern)
   /** */
@@ -440,9 +440,9 @@ module.exports = {
   isLocalPath,
   findUp,
   getFilePaths,
-  resolveOutputPath,
-  resolveFlatPath,
-  resolveCommonParent,
+  // resolveOutputPath,
+  // resolveFlatPath,
+  // resolveCommonParent,
   getGitignoreContents,
   toRelativePath,
   convertToRelative

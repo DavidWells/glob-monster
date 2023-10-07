@@ -1,5 +1,5 @@
 {
-  "name": "file-matcher",
+  "name": "filematch",
   "version": "0.0.1",
   "description": "File globber that understands regex",
   "main": "index.js",
@@ -9,10 +9,16 @@
     "parser",
     "options"
   ],
-  "homepage": "https://github.com/DavidWells/oparser",
+  "homepage": "https://github.com/DavidWells/filematch",
+  "files": [
+    "index.js",
+    "package.json",
+    "package-lock.json",
+    "README.md"
+  ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/DavidWells/oparser.git"
+    "url": "git+https://github.com/DavidWells/filematch.git"
   },
   "scripts": {
     "test": "uvu . '.test.([mc]js|[jt]sx?)$'",

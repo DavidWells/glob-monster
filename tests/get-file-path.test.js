@@ -248,6 +248,7 @@ test('getFilePaths /\.mdx?$/, /\.test\.js$/', async () => {
   const foundFiles = convertToRelative(files, ROOT_DIR)
   // console.log('foundFiles', foundFiles)
   assert.equal(foundFiles, [
+    'Notes.md',
     'README.md',
     'tests/fixtures/md/basic.md',
     'tests/fixtures/md/broken-inline.md',
@@ -416,6 +417,7 @@ test('Opts - relativePaths. return relative paths', async () => {
   console.log('files', files)
   /** */
   assert.equal(files, [
+    'Notes.md',
     'README.md',
     'tests/fixtures/md/basic.md',
     'tests/fixtures/md/broken-inline.md',

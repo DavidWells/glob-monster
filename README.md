@@ -1,20 +1,20 @@
-# File matcher
+# Filematch
 
-File matcher
+File globber that understands globs or regex.
 
-String globs match via [micromatch](https://github.com/micromatch/micromatch) and [is-glob](https://github.com/micromatch/is-glob/).
-
-Package names
-
-- https://www.npmjs.com/package/get-files
-- https://www.npmjs.com/package/filematcher
-- https://www.npmjs.com/package/filematch
+See [tests](./tests/) for more details.
 
 ## Install
 
 ```
-npm install x
+npm install filematch
 ```
+
+## About
+
+I wanted a easy way to use glob patterns or regular expressions to locate files. Thus, this package was born.
+
+String globs match via [micromatch](https://github.com/micromatch/micromatch) and [is-glob](https://github.com/micromatch/is-glob/).
 
 ### Basic syntax
 
