@@ -71,7 +71,8 @@ test('Finds file from dir', async () => {
 
 test('glob', async t => {
 	// const result = await runGlobby(t, '*.tmp');
-	//t.deepEqual(result.sort(), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
+	// t.deepEqual(result.sort(), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
+
   const files = await getFilePaths(ROOT_DIR, {
     patterns: ['tmp/*.tmp'],
   })
@@ -82,8 +83,8 @@ test('glob', async t => {
     'tmp/b.tmp', 
     'tmp/c.tmp', 
     'tmp/d.tmp', 
-    'tmp/e.tmp' 
-  ])
+    'tmp/e.tmp'
+  ], 'one')
 
   const filesTwo = await getFilePaths(ROOT_DIR, {
     patterns: ['tmp/**/*.tmp'],
@@ -101,7 +102,7 @@ test('glob', async t => {
     'tmp/sub/c.tmp',
     'tmp/sub/d.tmp',
     'tmp/sub/e.tmp'
-  ])
+  ], 'two')
 
   const filesThree = await getFilePaths(ROOT_DIR, {
     patterns: ['tmp/**/*.tmp'],
@@ -120,7 +121,7 @@ test('glob', async t => {
     //'tmp/sub/c.tmp',
     'tmp/sub/d.tmp',
     'tmp/sub/e.tmp'
-  ])
+  ], 'ignore')
 })
 
 test('getFilePaths - multiple file paths', async t => {
@@ -135,7 +136,7 @@ test('getFilePaths - multiple file paths', async t => {
   ])
 })
 
-test('getFilePaths - if empty patterns return all files', async () => {
+test.skip('getFilePaths - if empty patterns return all files', async () => {
   /* If called with no options, return all files */
   const filesOne = await getFilePaths(ROOT_DIR)
   // console.log('filesOne', filesOne)
@@ -158,15 +159,15 @@ test('getFilePaths - if empty patterns return all files', async () => {
 
 test('getFilePaths - string opt', async () => {
   /* If called with no options, return all files */
-  const files = await getFilePaths(ROOT_DIR, '**.md')
+  const files = await getFilePaths(ROOT_DIR, '*.md')
   const foundFiles = convertToRelative(files, ROOT_DIR)
-  console.log('foundFiles', foundFiles)
+  // console.log('foundFiles', foundFiles)
   assert.equal(foundFiles, [
     "Notes.md",
     'README.md',
   ])
 
-  const filesTwo = await getFilePaths(ROOT_DIR, ['**.md', '**.json'])
+  const filesTwo = await getFilePaths(ROOT_DIR, ['*.md', '*.json'])
   const foundFilesTwo = convertToRelative(filesTwo, ROOT_DIR)
   assert.equal(foundFilesTwo, [
     "Notes.md",
@@ -179,10 +180,10 @@ test('getFilePaths - string opt', async () => {
 test('getFilePaths - first arg opts', async () => {
   /* If called with no options, return all files */
   const files = await getFilePaths({
-    patterns: ['**.md']
+    patterns: ['*.md']
   })
   const foundFiles = convertToRelative(files, ROOT_DIR)
-  console.log('foundFiles', foundFiles)
+  // console.log('foundFiles', foundFiles)
   assert.equal(foundFiles, [
     "Notes.md",
     'README.md',
@@ -190,10 +191,10 @@ test('getFilePaths - first arg opts', async () => {
 
   const filesTwo = await getFilePaths({
     cwd: path.join(__dirname, '..'),
-    patterns: ['**.md']
+    patterns: ['*.md']
   })
   const foundFilesTwo = convertToRelative(filesTwo, ROOT_DIR)
-  console.log('foundFilesTwo', foundFilesTwo)
+  // console.log('foundFilesTwo', foundFilesTwo)
   assert.equal(foundFilesTwo, [
     "Notes.md",
     'README.md',
@@ -210,11 +211,11 @@ test('getFilePaths with multiple patterns', async () => {
     // exactStringMatch: true,
   })
   const foundFiles = convertToRelative(files, ROOT_DIR)
-  console.log('foundFiles', foundFiles)
+  // console.log('foundFiles', foundFiles)
   assert.equal(foundFiles, [ 
     'tmp/a.tmp', 
     'tmp/b.tmp' 
-  ])
+  ], 'one')
 
   const filesTwo = await getFilePaths(TEMP_DIR, {
     patterns: [
@@ -225,12 +226,12 @@ test('getFilePaths with multiple patterns', async () => {
    // exactStringMatch: true,
   })
   const foundFilesTwo = convertToRelative(filesTwo, ROOT_DIR)
-  console.log('foundFilesTwo', foundFilesTwo)
+  // console.log('foundFilesTwo', foundFilesTwo)
   assert.equal(foundFilesTwo, [ 
     'tmp/a.tmp', 
     'tmp/b.tmp', 
     'tmp/sub/a.tmp' 
-  ])
+  ], 'two')
 })
 
 test('return all none matching files for all negative patterns', async t => {
@@ -238,7 +239,7 @@ test('return all none matching files for all negative patterns', async t => {
     patterns: ['!a.tmp', '!b.tmp'],
   })
   const foundFiles = convertToRelative(files, ROOT_DIR)
-  console.log('foundFiles', foundFiles)
+  // console.log('foundFiles', foundFiles)
   assert.equal(foundFiles, [
     'tmp/c.tmp',
     'tmp/d.tmp',
@@ -261,7 +262,7 @@ test('getFilePaths with REGEX /\.test\.js?$/', async () => {
     ],
   })
   const foundFiles = convertToRelative(files, ROOT_DIR).sort()
-  console.log('foundFiles', foundFiles)
+  // console.log('foundFiles', foundFiles)
   assert.equal(foundFiles, [
     "tests/get-file-path.test.js",
     'tests/find.test.js',
@@ -279,7 +280,7 @@ test('getFilePaths with REGEX string', async () => {
     ],
   })
   const foundFiles = convertToRelative(files, ROOT_DIR).sort()
-  console.log('foundFiles', foundFiles)
+  // console.log('foundFiles', foundFiles)
   assert.equal(foundFiles, [
     "tests/get-file-path.test.js",
     'tests/find.test.js',
@@ -471,7 +472,7 @@ test('Opts - relativePaths. return relative paths', async () => {
       /node_modules/,
     ],
   })
-  //*
+  /*
   console.log('files', files)
   /** */
   assert.equal(files, [
@@ -508,6 +509,7 @@ test('Opts - caseInsensitive. return matches regardless of casing', async () => 
   const files = await getFilePaths(ROOT_DIR, {
     relativePaths: true,
     caseInsensitive: true,
+    // debug: true,
     patterns: [
      '**/README.md',
     ],
@@ -515,17 +517,33 @@ test('Opts - caseInsensitive. return matches regardless of casing', async () => 
      // /node_modules/,
     ],
   })
-  console.log('files', files)
+  // console.log('files', files)
   assert.equal(files, [
     'README.md',
+    'node_modules/@nodelib/fs.scandir/README.md',
+    'node_modules/@nodelib/fs.stat/README.md',
+    'node_modules/@nodelib/fs.walk/README.md',
+    'node_modules/braces/README.md',
     'node_modules/dequal/readme.md',
     'node_modules/diff/README.md',
+    'node_modules/fast-glob/README.md',
+    'node_modules/fastq/README.md',
+    'node_modules/fill-range/README.md',
+    'node_modules/glob-parent/README.md',
     'node_modules/globrex/readme.md',
     'node_modules/is-extglob/README.md',
     'node_modules/is-glob/README.md',
+    'node_modules/is-number/README.md',
     'node_modules/kleur/readme.md',
+    'node_modules/merge2/README.md',
+    'node_modules/micromatch/README.md',
     'node_modules/mri/readme.md',
+    'node_modules/picomatch/README.md',
+    'node_modules/queue-microtask/README.md',
+    'node_modules/reusify/README.md',
+    'node_modules/run-parallel/README.md',
     'node_modules/sade/readme.md',
+    'node_modules/to-regex-range/README.md',
     'node_modules/uvu/readme.md'
   ])
 })

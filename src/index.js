@@ -1,6 +1,7 @@
 const fs = require('fs').promises
 const cwd = require('process').cwd
 const path = require('path')
+const fg = require('fast-glob')
 const globrex = require('globrex')
 const isGlob = require('is-glob')
 const { getGitignoreContents } = require('./utils/get-gitignore')
@@ -71,6 +72,7 @@ async function getFilePaths(dirName, opts = {}) {
 
   let findPattern
   let ignorePattern
+  let hasRegex = false
   let filePaths = []
   let gitIgnoreFiles = []
   let gitIgnoreGlobs = []
@@ -95,10 +97,14 @@ async function getFilePaths(dirName, opts = {}) {
   /** */
 
   if (_findPattern && _findPattern.length) {
-    findPattern = combineRegexPatterns(_findPattern, flags)
+    const findResults = combineRegexPatterns(_findPattern, flags)
+    findPattern = findResults[0]
+    hasRegex = findResults[1]
   }
   if (_ignorePattern && _ignorePattern.length) {
-    ignorePattern = combineRegexPatterns(_ignorePattern, flags)
+    const ignoreResults = combineRegexPatterns(_ignorePattern, flags)
+    ignorePattern = ignoreResults[0]
+    hasRegex = ignoreResults[1]
   }
 
   if (debug) {
@@ -122,7 +128,39 @@ async function getFilePaths(dirName, opts = {}) {
       }
     }
   }
-  
+
+  /* If only ignore patterns do longer lookup */
+  const onlyIgnorePatterns = (_ignorePattern.length && !_findPattern.length)
+
+  if (!hasRegex && !onlyIgnorePatterns) {
+    if (debug) {
+      console.log('No regex, use faster lookup')
+    }
+    const fixIgnores = _ignorePattern.map((x) => {
+      return (x.match(/^!/)) ? x :  `!${x}`
+    })
+    const finalFastPatterns = _findPattern.concat(fixIgnores)
+    // console.log('finalFastPatterns', finalFastPatterns)
+    const entries = fg.globSync(finalFastPatterns, {
+      cwd: directory,
+      // dot: true, 
+      globstar: true,
+      extended: true,
+      absolute: true,
+      caseSensitiveMatch: !caseInsensitive
+      // braceExpansion: true
+    })
+
+    if (relativePaths) {
+      return convertToRelative(entries, directory)
+    }
+
+    return entries
+  }
+
+  if (debug) {
+    console.log('Regex found, look thru all files')
+  }
   /*
   console.log('findPattern', findPattern)
   console.log('ignorePattern', ignorePattern)
@@ -265,11 +303,14 @@ async function totalist(dir, callback, pre='') {
 }
 
 function combineRegexPatterns(patterns = [], flags) {
+  let hasRegex = false
   const patternString = patterns.map((pat) => {
     // console.log('pat', pat)
     if (isRegex(pat)) {
+      hasRegex = true
       return pat.source
     } else if (typeof pat === 'string' && REGEX_REGEX.test(pat)) {
+      hasRegex = true
       const regexInfo = pat.match(REGEX_REGEX)
       // console.log('regexInfo', regexInfo)
       if (regexInfo && regexInfo[1]) {
@@ -328,7 +369,10 @@ function combineRegexPatterns(patterns = [], flags) {
   /*
   console.log('patternString', patternString)
   /** */
-  return new RegExp(patternString, flags)
+  return [
+    new RegExp(patternString, flags),
+    hasRegex
+  ]
 }
 
 function ensureTrailingSlash(str = '') {

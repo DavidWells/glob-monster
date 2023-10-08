@@ -84,7 +84,7 @@ test('Ignore top patterns', async () => {
   /* Ignore **.md */
   const files = await find(['**/**.md'], {
     ignore: [
-      '**.md',
+      '*.md',
       'node_modules',
     ],
     cwd: ROOT_DIR,
