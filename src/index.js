@@ -301,7 +301,7 @@ function combineRegexPatterns(patterns = [], flags) {
       } else if (pat[0] === '.' && pat[1] === '/') {
         finalPattern = pat.substr(2, pat.length - 1)
       } else if (pat[0] === '/') {
-        finalPattern = pat.substr(1, pat.length - 1)
+        // finalPattern = pat.substr(1, pat.length - 1)
       }
 
       const result = globrex(finalPattern, globRexOpts)

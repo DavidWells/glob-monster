@@ -17,7 +17,7 @@ test('return JS', async () => {
   const files = (await find(['**/**.js'], {
     ignore: [
       'node_modules',
-      '/tests/fixtures/**.js',
+      './tests/fixtures/**.js',
       /!!.*\.js$/, // multiple-negation/!unicorn.js'
       // '/tests/fixtures/**/**.js',
       // '/tests',
