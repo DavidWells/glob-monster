@@ -523,7 +523,6 @@ test('Opts - caseInsensitive. return matches regardless of casing', async () => 
     'node_modules/globrex/readme.md',
     'node_modules/is-extglob/README.md',
     'node_modules/is-glob/README.md',
-    'node_modules/is-local-path/README.md',
     'node_modules/kleur/readme.md',
     'node_modules/mri/readme.md',
     'node_modules/sade/readme.md',

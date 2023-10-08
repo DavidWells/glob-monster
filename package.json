@@ -6,19 +6,21 @@
   "author": "David Wells",
   "license": "MIT",
   "keywords": [
-    "parser",
-    "options"
+    "file-finder",
+    "glob",
+    "fs"
   ],
-  "homepage": "https://github.com/DavidWells/filematch",
+  "homepage": "https://github.com/DavidWells/glob-monster",
   "files": [
     "src",
+    ".github/logo.png",
     "package.json",
     "package-lock.json",
     "README.md"
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/DavidWells/filematch.git"
+    "url": "git+https://github.com/DavidWells/glob-monster.git"
   },
   "scripts": {
     "test": "uvu . '.test.([mc]js|[jt]sx?)$'",
@@ -31,8 +33,7 @@
   },
   "dependencies": {
     "globrex": "^0.1.2",
-    "is-glob": "^4.0.3",
-    "is-local-path": "^0.1.6"
+    "is-glob": "^4.0.3"
   },
   "devDependencies": {
     "uvu": "^0.5.1"
