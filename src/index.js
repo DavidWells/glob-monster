@@ -1,8 +1,10 @@
 const fs = require('fs').promises
+const cwd = require('process').cwd
 const path = require('path')
 const globrex = require('globrex')
 const isGlob = require('is-glob')
-const isLocalPath = require('is-local-path')
+const { getGitignoreContents } = require('./utils/get-gitignore')
+// const isLocalPath = require('is-local-path')
 
 // https://github.com/kgryte/regex-regex/blob/master/lib/index.js
 // const REGEX_REGEX = /^\/((?:\\\/|[^\/])+)\/([imgy]*)$/
@@ -11,10 +13,6 @@ const IS_HIDDEN_FILE = /(^|[\\\/])\.[^\\\/\.]/g
 const globRexOpts = {
   globstar: true,
   extended: true
-}
-
-function isRegex(thing) {
-  return (thing instanceof RegExp)
 }
 
 async function findUp(start, fileName) {
@@ -33,6 +31,207 @@ async function findUp(start, fileName) {
       if (found) return found
     }
   })
+}
+
+async function find(globPattern, opts = {}) {
+  opts.patterns = ensureArray(globPattern)
+  opts.excludeGitIgnore = (typeof opts.excludeGitIgnore !== 'undefined') ? opts.excludeGitIgnore : true
+  const directory = opts.cwd || process.cwd()
+  if (opts.debug) {
+    console.log('find in directory', directory)
+    console.log('find in opts', opts)
+  }
+  return getFilePaths(directory, opts)
+}
+
+// alt https://github.com/duniul/clean-modules/blob/33b66bcfb7825e1fa1eb1e296e523ddba374f1ae/src/utils/filesystem.ts#L92
+// Alt https://github.com/AvianFlu/ncp
+async function getFilePaths(dirName, opts = {}) {
+  const _opts = typeof dirName === 'object' ? dirName : opts
+  const directory = typeof dirName === 'object' ? (_opts.cwd || cwd()) : dirName
+  const options = typeof _opts === 'object' ? _opts : {}
+  /* Second opt a string or array use it as patterns */
+  if (typeof opts === 'string' || Array.isArray(opts)) {
+    options.patterns = ensureArray(opts)
+  }
+  const {
+    patterns = [],
+    ignore = [],
+    excludeGitIgnore = false,
+    excludeHidden = false,
+    relativePaths = false,
+    caseInsensitive = false,
+    debug = false
+  } = options
+
+  if (debug) {
+    console.log('getFilePaths directory', directory)
+    console.log('getFilePaths options', options)
+  }
+
+  let findPattern
+  let ignorePattern
+  let filePaths = []
+  let gitIgnoreFiles = []
+  let gitIgnoreGlobs = []
+  const flags = (caseInsensitive) ? 'i' : ''
+
+  const _patterns = ensureArray(patterns)
+  const _ignorePattern = ensureArray(ignore)
+  const _findPattern = []
+  for (let i = 0; i < _patterns.length; i++) {
+    const pat = _patterns[i]
+    /* Push negated patterns to ignore list */
+    if (typeof pat === 'string' && pat[0] === '!') {
+      _ignorePattern.push(pat)
+      continue
+    }
+    _findPattern.push(pat)
+  }
+
+  /*
+  console.log('FIND patterns', _findPattern)
+  console.log('IGNORE patterns', _ignorePattern)
+  /** */
+
+  if (_findPattern && _findPattern.length) {
+    findPattern = combineRegexPatterns(_findPattern, flags)
+  }
+  if (_ignorePattern && _ignorePattern.length) {
+    ignorePattern = combineRegexPatterns(_ignorePattern, flags)
+  }
+
+  if (debug) {
+    //*
+    console.log('findPattern', findPattern)
+    console.log('ignorePattern', ignorePattern)
+    /** */
+  }
+
+  if (excludeGitIgnore) {
+    const gitIgnoreContents = await getGitignoreContents()
+    for (let index = 0; index < gitIgnoreContents.length; index++) {
+      const ignoreItem = gitIgnoreContents[index]
+      // console.log('ignoreItem', ignoreItem)
+      if (isGlob(ignoreItem)) {
+        gitIgnoreGlobs.push(ignoreItem)
+      } else {
+        gitIgnoreFiles.push(
+          ignoreItem.replace(/^\.\//, '') // normalize relative paths
+        )
+      }
+    }
+  }
+  
+  /*
+  console.log('findPattern', findPattern)
+  console.log('ignorePattern', ignorePattern)
+  console.log('gitIgnoreFiles', gitIgnoreFiles)
+  console.log('gitIgnoreGlobs', gitIgnoreGlobs)
+  // process.exit(1)
+  /** */
+
+  await totalist(directory, (relativePath, absolutePath, stats) => {
+    //const absolutePath = `${directory}/${relativePath}`
+    //*
+    // console.log('directory', abs)
+    // console.log('absolutePath', absolutePath)
+    // console.log('relativePath', relativePath)
+    /** */
+
+    /* Remove hidden files */
+    if (excludeHidden && IS_HIDDEN_FILE.test(relativePath)) {
+      return
+    }
+
+    /* Remove files in git ignore */
+    if (excludeGitIgnore && gitIgnoreFiles.length) {
+      if (gitIgnoreFiles.includes(relativePath)) return
+      if (gitIgnoreFiles.includes(path.basename(relativePath))) return
+      //*
+      const topLevelDir = relativePath.substring(0, relativePath.indexOf('/'))
+      // console.log('topLevelDir', topLevelDir)
+      // slower lookup
+      if (gitIgnoreFiles.some((ignore) => {
+        // console.log('ignore', ignore)
+        // return relativePath.indexOf(ignore) > -1
+        // return relativePath.split('/')[0] === ignore
+        return topLevelDir === ignore || relativePath === ignore
+      })) {
+        return
+      }
+      /** */
+    }
+
+    /* Remove files in ignore array */
+    if (ignorePattern && ignorePattern.test(relativePath)) {
+      // Alt checker https://github.com/axtgr/wildcard-match
+      return
+    }
+
+    /* If no patterns supplied add all files */
+    if (!findPattern) {
+      filePaths.push(absolutePath)
+      return
+    }
+
+    /* If pattern match add file! */
+    // Alt match https://github.com/micromatch/picomatch
+    if (findPattern.test(absolutePath)) {
+      // console.log('Match absolutePath', absolutePath)
+      filePaths.push(absolutePath)
+      return
+    }
+
+    /* If pattern match add file! */
+    if (findPattern.test(relativePath)) {
+      // console.log('Match relativePath', relativePath)
+      filePaths.push(absolutePath)
+      return
+    }
+
+    /*
+    let ignored = false
+    for (let index = 0; index < ignore.length; index++) {
+      const pattern = ignore[index]
+      if (pattern.test(absolutePath)) {
+        ignored = true
+      }
+    }
+    if (!ignored) {
+      filePaths.push(absolutePath)
+    }
+    /** */
+	})
+
+  /* Ignore patterns from .gitignore files */
+  if (gitIgnoreGlobs && gitIgnoreGlobs.length) {
+    // console.log('gitIgnoreGlobs', gitIgnoreGlobs)
+    let removeFiles = []
+    for (let index = 0; index < gitIgnoreGlobs.length; index++) {
+      const glob = gitIgnoreGlobs[index]
+      const result = globrex(glob) // alt lib https://github.com/axtgr/wildcard-match
+      // console.log('result', result)
+      for (let n = 0; n < filePaths.length; n++) {
+        const file = filePaths[n]
+        if (result.regex.test(file)) {
+          removeFiles.push(file)
+        }
+      }
+    }
+    /* Remove files that match glob pattern */
+    if (removeFiles.length) {
+      filePaths = filePaths.filter(function(el) {
+        return removeFiles.indexOf(el) < 0
+      })
+    }
+  }
+
+  if (relativePaths) {
+    return convertToRelative(filePaths, directory)
+  }
+
+  return filePaths
 }
 
 // https://github.com/lukeed/escalade
@@ -140,206 +339,12 @@ function ensureArray(thing) {
   return Array.isArray(thing) ? thing : [thing]  // (typeof thing === 'string' || isRegex(thing)) ? [thing] : thing
 }
 
-async function globber(globPattern, opts = {}) {
-  opts.patterns = ensureArray(globPattern)
-  opts.excludeGitIgnore = (typeof opts.excludeGitIgnore !== 'undefined') ? opts.excludeGitIgnore : true
-  const dir = opts.cwd || process.cwd()
-  // console.log('dir', dir)
-  // console.log('opts', opts)
-  return getFilePaths(dir, opts)
-}
-
-// alt https://github.com/duniul/clean-modules/blob/33b66bcfb7825e1fa1eb1e296e523ddba374f1ae/src/utils/filesystem.ts#L92
-// Alt https://github.com/AvianFlu/ncp
-async function getFilePaths(dirName, {
-  patterns = [],
-  ignore = [],
-  excludeGitIgnore = false,
-  excludeHidden = false,
-  relativePaths = false,
-  caseInsensitive = false
-}) {
-  let findPattern
-  let ignorePattern
-  let filePaths = []
-  let gitIgnoreFiles = []
-  let gitIgnoreGlobs = []
-  const flags = (caseInsensitive) ? 'i' : ''
-
-  const _patterns = ensureArray(patterns)
-  const _ignorePattern = ensureArray(ignore)
-  const _findPattern = []
-  for (let i = 0; i < _patterns.length; i++) {
-    const pat = _patterns[i]
-    /* Push negated patterns to ignore list */
-    if (typeof pat === 'string' && pat[0] === '!') {
-      _ignorePattern.push(pat)
-      continue
-    }
-    _findPattern.push(pat)
-  }
-
-  /*
-  console.log('FIND patterns', _findPattern)
-  console.log('IGNORE patterns', _ignorePattern)
-  /** */
-
-  if (_findPattern && _findPattern.length) {
-    findPattern = combineRegexPatterns(_findPattern, flags)
-  }
-  if (_ignorePattern && _ignorePattern.length) {
-    ignorePattern = combineRegexPatterns(_ignorePattern, flags)
-  }
-
-  /*
-  console.log('findPattern', findPattern)
-  console.log('ignorePattern', ignorePattern)
-  /** */
-
-  if (excludeGitIgnore) {
-    const gitIgnoreContents = await getGitignoreContents()
-    for (let index = 0; index < gitIgnoreContents.length; index++) {
-      const ignoreItem = gitIgnoreContents[index]
-      // console.log('ignoreItem', ignoreItem)
-      if (isGlob(ignoreItem)) {
-        gitIgnoreGlobs.push(ignoreItem)
-      } else {
-        gitIgnoreFiles.push(
-          ignoreItem.replace(/^\.\//, '') // normalize relative paths
-        )
-      }
-    }
-  }
-  
-  /*
-  console.log('findPattern', findPattern)
-  console.log('ignorePattern', ignorePattern)
-  console.log('gitIgnoreFiles', gitIgnoreFiles)
-  console.log('gitIgnoreGlobs', gitIgnoreGlobs)
-  // process.exit(1)
-  /** */
-
-  await totalist(dirName, (relativePath, absolutePath, stats) => {
-    //const absolutePath = `${dirName}/${relativePath}`
-    //*
-    // console.log('dirName', abs)
-    // console.log('absolutePath', absolutePath)
-    // console.log('relativePath', relativePath)
-    /** */
-
-    /* Remove hidden files */
-    if (excludeHidden && IS_HIDDEN_FILE.test(relativePath)) {
-      return
-    }
-
-    /* Remove files in git ignore */
-    if (excludeGitIgnore && gitIgnoreFiles.length) {
-      if (gitIgnoreFiles.includes(relativePath)) return
-      if (gitIgnoreFiles.includes(path.basename(relativePath))) return
-      //*
-      const topLevelDir = relativePath.substring(0, relativePath.indexOf('/'))
-      // console.log('topLevelDir', topLevelDir)
-      // slower lookup
-      if (gitIgnoreFiles.some((ignore) => {
-        // console.log('ignore', ignore)
-        // return relativePath.indexOf(ignore) > -1
-        // return relativePath.split('/')[0] === ignore
-        return topLevelDir === ignore || relativePath === ignore
-      })) {
-        return
-      }
-      /** */
-    }
-
-    /* Remove files in ignore array */
-    if (ignorePattern && ignorePattern.test(relativePath)) {
-      // Alt checker https://github.com/axtgr/wildcard-match
-      return
-    }
-
-    /* If no patterns supplied add all files */
-    if (!findPattern) {
-      filePaths.push(absolutePath)
-      return
-    }
-
-    /* If pattern match add file! */
-    // Alt match https://github.com/micromatch/picomatch
-    if (findPattern.test(absolutePath)) {
-      // console.log('Match absolutePath', absolutePath)
-      filePaths.push(absolutePath)
-      return
-    }
-
-    /* If pattern match add file! */
-    if (findPattern.test(relativePath)) {
-      // console.log('Match relativePath', relativePath)
-      filePaths.push(absolutePath)
-      return
-    }
-
-    /*
-    let ignored = false
-    for (let index = 0; index < ignore.length; index++) {
-      const pattern = ignore[index]
-      if (pattern.test(absolutePath)) {
-        ignored = true
-      }
-    }
-    if (!ignored) {
-      filePaths.push(absolutePath)
-    }
-    /** */
-	})
-
-  /* Ignore patterns from .gitignore files */
-  if (gitIgnoreGlobs && gitIgnoreGlobs.length) {
-    // console.log('gitIgnoreGlobs', gitIgnoreGlobs)
-    let removeFiles = []
-    for (let index = 0; index < gitIgnoreGlobs.length; index++) {
-      const glob = gitIgnoreGlobs[index]
-      const result = globrex(glob) // alt lib https://github.com/axtgr/wildcard-match
-      // console.log('result', result)
-      for (let n = 0; n < filePaths.length; n++) {
-        const file = filePaths[n]
-        if (result.regex.test(file)) {
-          removeFiles.push(file)
-        }
-      }
-    }
-    /* Remove files that match glob pattern */
-    if (removeFiles.length) {
-      filePaths = filePaths.filter(function(el) {
-        return removeFiles.indexOf(el) < 0
-      })
-    }
-  }
-
-  if (relativePaths) {
-    return convertToRelative(filePaths, dirName)
-  }
-
-  return filePaths
-}
-
 function convertToRelative(files, dir) {
   return files.map((f) => toRelativePath(f, dir)).sort()
 }
 
 function toRelativePath(file, cwd) {
   return file.replace(cwd, '').replace(/^\//, '')
-}
-
-async function getGitignoreContents(filePath = '.gitignore') {
-  try {
-    const gitIgnoreContent = await fs.readFile(filePath, { encoding: 'utf8' })
-    return gitIgnoreContent
-      .split(/\r?\n/)
-      .filter((line) => !/^\s*$/.test(line) && !/^\s*#/.test(line))
-      .map((line) => line.trim().replace(/^\/+|\/+$/g, ''))
-  } catch (_a) {
-    return []
-  }
 }
 
 // slash at the beginning of a filename
@@ -388,6 +393,10 @@ function resolveCommonParent(mainDir = '', fileDir = '') {
   return value
 }
 
+function isRegex(thing) {
+  return (thing instanceof RegExp)
+}
+
 function resolveOutputPath(cwd, outputDir, file) {
   // console.log('file', file)
   const fileCommon = resolveCommonParent(cwd, file)
@@ -424,10 +433,10 @@ function escapeRegexString(string) {
 		throw new TypeError('Expected a string')
 	}
 
-  const match = string.match(/\[([^\]]*)\](.?)/)
-  if (match) {
-    console.log('match', match)
-  }
+  // const match = string.match(/\[([^\]]*)\](.?)/)
+  // if (match) {
+  //   console.log('match', match)
+  // }
 	// Escape characters with special meaning either inside or outside character sets.
 	// Use a simple backslash escape when it’s always valid, and a `\xnn` escape when the simpler form would be disallowed by Unicode patterns’ stricter grammar.
 	return string
@@ -436,14 +445,12 @@ function escapeRegexString(string) {
 }
 
 module.exports = {
-  globber,
-  isLocalPath,
+  find,
   findUp,
   getFilePaths,
   // resolveOutputPath,
   // resolveFlatPath,
   // resolveCommonParent,
-  getGitignoreContents,
   toRelativePath,
   convertToRelative
 }

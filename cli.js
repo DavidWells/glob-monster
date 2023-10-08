@@ -1,16 +1,6 @@
-const { globber } = require('.')
+const { find } = require('.')
 
-globber(
-  // ['**/**.js']
-  // ['**.js']
-  // '**.js'
-  // /^[^/]*\.js$/
-  // '/^[^/]*\.js$/'
-  // '/\[api\]\.page\.js/'
-  '\[api\]\.page\.js'
-  // /.*\.js$/
-  , 
-  {
+const opts = {
   // ignore: [
   //   'node_modules',
   //   '/tests/fixtures/**.js',
@@ -21,6 +11,18 @@ globber(
   //   // /tests/,
   // ],
   relativePaths: true,
-}).then((files) => {
+  debug: true
+}
+
+find(
+  // ['**/**.js']
+  // ['**.js']
+  // '**.js'
+  // /^[^/]*\.js$/
+  // '/^[^/]*\.js$/'
+  // '/\[api\]\.page\.js/'
+  '\[api\]\.page\.js'
+  // /.*\.js$/
+  , opts).then((files) => {
   console.log('files', files)
 })

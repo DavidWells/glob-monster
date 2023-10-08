@@ -2,7 +2,7 @@ const fs = require('fs')
 const path = require('path')
 const { test } = require('uvu') 
 const assert = require('uvu/assert')
-const { findUp, getFilePaths, globber } = require('..')
+const { find, findUp } = require('../src')
 
 const ROOT_DIR = path.resolve(__dirname, '../')
 const TEMP_DIR = path.resolve(ROOT_DIR, 'tmp')
@@ -14,7 +14,7 @@ test('Exports API', () => {
 })
 
 test('return JS', async () => {
-  const files = await globber(['**/**.js'], {
+  const files = (await find(['**/**.js'], {
     ignore: [
       'node_modules',
       '/tests/fixtures/**.js',
@@ -28,24 +28,24 @@ test('return JS', async () => {
     cwd: ROOT_DIR,
     // caseInsensitive: true,
     relativePaths: true,
-  })
+  })).sort()
 
   assert.equal(files, [
     'cli.js',
-    'index.js',
+    'src/index.js',
+    'src/utils/get-gitignore.js',
     'tests/fixtures/gitignore/bar.js',
     'tests/fixtures/js/simple.js',
     // 'tests/fixtures/multiple-negation/!!unicorn.js',
     'tests/fixtures/multiple-negation/!unicorn.js',
     'tests/fixtures/negative/foo.js',
     'tests/get-file-path.test.js',
-    'tests/index.test.js'
-  ])
+    'tests/find.test.js'
+  ].sort())
 })
 
-
 test('Ignore Self', async () => {
-  const files = await globber(['**/**.md'], {
+  const files = await find(['**/**.md'], {
     ignore: [
       '**/**.md',
     ],
@@ -82,7 +82,7 @@ test('Ignore top patterns', async () => {
     'tests/fixtures/md/transform-wordCount.md'
   ]
   /* Ignore **.md */
-  const files = await globber(['**/**.md'], {
+  const files = await find(['**/**.md'], {
     ignore: [
       '**.md',
       'node_modules',
@@ -97,7 +97,7 @@ test('Ignore top patterns', async () => {
   assert.equal(files, answer)
 
   /* Ignore *.md */
-  const filesTwo = await globber(['**/**.md'], {
+  const filesTwo = await find(['**/**.md'], {
     ignore: [
       '*.md',
       'node_modules',
@@ -112,7 +112,7 @@ test('Ignore top patterns', async () => {
   assert.equal(filesTwo, answer)
 
   /* Ignore './*.{md,mdx}' */
-  const filesThree = await globber(['**/**.md'], {
+  const filesThree = await find(['**/**.md'], {
     ignore: [
       './*.{md,mdx}',
       'node_modules',
@@ -126,7 +126,7 @@ test('Ignore top patterns', async () => {
   /** */
   assert.equal(filesThree, answer)
 
-  const filesFour = await globber(['**/**.md'], {
+  const filesFour = await find(['**/**.md'], {
     ignore: [
       /^[^/]*\.mdx?$/,
       'node_modules',

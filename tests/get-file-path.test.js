@@ -2,7 +2,8 @@ const fs = require('fs')
 const path = require('path')
 const { test } = require('uvu') 
 const assert = require('uvu/assert')
-const { findUp, getFilePaths, getGitignoreContents, toRelativePath, convertToRelative } = require('..')
+const { findUp, getFilePaths, toRelativePath, convertToRelative } = require('../src')
+const { getGitignoreContents } = require('../src/utils/get-gitignore')
 
 const GREEN = '\x1b[32m%s\x1b[0m'
 const ROOT_DIR = path.resolve(__dirname, '../')
@@ -37,7 +38,7 @@ test('Exports API', () => {
 })
 
 test('Finds file from file', async () => {
-  const startDir = path.resolve(__dirname, 'index.test.js')
+  const startDir = path.resolve(__dirname, 'find.test.js')
   const file = await findUp(startDir, 'README.md')
   /*
   console.log('startAt', startDir)
@@ -122,7 +123,7 @@ test('glob', async t => {
   ])
 })
 
-test('glob - multiple file paths', async t => {
+test('getFilePaths - multiple file paths', async t => {
   const files = await getFilePaths(ROOT_DIR, {
     patterns: ['tmp/a.tmp', 'tmp/b.tmp'],
   })
@@ -134,15 +135,72 @@ test('glob - multiple file paths', async t => {
   ])
 })
 
-test('glob - empty patterns', async () => {
-  const files = await getFilePaths(ROOT_DIR, {
-    // patterns: [],
+test('getFilePaths - if empty patterns return all files', async () => {
+  /* If called with no options, return all files */
+  const filesOne = await getFilePaths(ROOT_DIR)
+  // console.log('filesOne', filesOne)
+	assert.ok(filesOne.length)
+  assert.equal(filesOne.length > 50, true)
+
+  /* If called with blank options, return all files */
+  const filesTwo = await getFilePaths(ROOT_DIR, {})
+  // console.log('filesTwo', filesTwo)
+	assert.ok(filesTwo.length)
+  assert.equal(filesTwo.length > 50, true)
+
+  /* if called with empty patterns return all */
+  const filesThree = await getFilePaths(ROOT_DIR, {
+    patterns: [],
   })
-	assert.ok(files.length)
-  assert.equal(files.length > 3, true)
+	assert.ok(filesThree.length)
+  assert.equal(filesThree.length > 50, true)
 })
 
-test('glob with multiple patterns', async () => {
+test('getFilePaths - string opt', async () => {
+  /* If called with no options, return all files */
+  const files = await getFilePaths(ROOT_DIR, '**.md')
+  const foundFiles = convertToRelative(files, ROOT_DIR)
+  console.log('foundFiles', foundFiles)
+  assert.equal(foundFiles, [
+    "Notes.md",
+    'README.md',
+  ])
+
+  const filesTwo = await getFilePaths(ROOT_DIR, ['**.md', '**.json'])
+  const foundFilesTwo = convertToRelative(filesTwo, ROOT_DIR)
+  assert.equal(foundFilesTwo, [
+    "Notes.md",
+    'README.md',
+    'package-lock.json',
+    'package.json',
+  ])
+})
+
+test('getFilePaths - first arg opts', async () => {
+  /* If called with no options, return all files */
+  const files = await getFilePaths({
+    patterns: ['**.md']
+  })
+  const foundFiles = convertToRelative(files, ROOT_DIR)
+  console.log('foundFiles', foundFiles)
+  assert.equal(foundFiles, [
+    "Notes.md",
+    'README.md',
+  ])
+
+  const filesTwo = await getFilePaths({
+    cwd: path.join(__dirname, '..'),
+    patterns: ['**.md']
+  })
+  const foundFilesTwo = convertToRelative(filesTwo, ROOT_DIR)
+  console.log('foundFilesTwo', foundFilesTwo)
+  assert.equal(foundFilesTwo, [
+    "Notes.md",
+    'README.md',
+  ])
+})
+
+test('getFilePaths with multiple patterns', async () => {
   const files = await getFilePaths(TEMP_DIR, {
     patterns: [
       'a.tmp',
@@ -202,30 +260,30 @@ test('getFilePaths with REGEX /\.test\.js?$/', async () => {
       /node_modules/,
     ],
   })
-  const foundFiles = convertToRelative(files, ROOT_DIR)
-  // console.log('foundFiles', foundFiles)
+  const foundFiles = convertToRelative(files, ROOT_DIR).sort()
+  console.log('foundFiles', foundFiles)
   assert.equal(foundFiles, [
     "tests/get-file-path.test.js",
-    'tests/index.test.js',
-  ])
+    'tests/find.test.js',
+  ].sort())
 })
 
 test('getFilePaths with REGEX string', async () => {
   const files = await getFilePaths(ROOT_DIR, {
     patterns: [
       '/.test.js$/',
-      //'tests/index.test.js',
+      //'tests/find.test.js',
     ],
     ignore: [
       /node_modules/,
     ],
   })
-  const foundFiles = convertToRelative(files, ROOT_DIR)
+  const foundFiles = convertToRelative(files, ROOT_DIR).sort()
   console.log('foundFiles', foundFiles)
   assert.equal(foundFiles, [
     "tests/get-file-path.test.js",
-    'tests/index.test.js',
-  ])
+    'tests/find.test.js',
+  ].sort())
 })
 
 test('getFilePaths /\.mdx?$/, /\.test\.js$/', async () => {
@@ -245,7 +303,7 @@ test('getFilePaths /\.mdx?$/, /\.test\.js$/', async () => {
     //excludeGitIgnore: true,
     excludeHidden: true,
   })
-  const foundFiles = convertToRelative(files, ROOT_DIR)
+  const foundFiles = convertToRelative(files, ROOT_DIR).sort()
   // console.log('foundFiles', foundFiles)
   assert.equal(foundFiles, [
     'Notes.md',
@@ -275,9 +333,9 @@ test('getFilePaths /\.mdx?$/, /\.test\.js$/', async () => {
     'tests/fixtures/md/transform-remote.md',
     'tests/fixtures/md/transform-toc.md',
     'tests/fixtures/md/transform-wordCount.md',
+    'tests/find.test.js',
     "tests/get-file-path.test.js",
-    'tests/index.test.js',
-  ])
+  ].sort())
 })
 
 test('getFilePaths glob string', async () => {
@@ -311,7 +369,7 @@ test('getFilePaths glob string', async () => {
     excludeGitIgnore: true,
     excludeHidden: true,
   })
-  const foundFiles = convertToRelative(files, ROOT_DIR)
+  const foundFiles = convertToRelative(files, ROOT_DIR).sort()
   // console.log('foundFiles', foundFiles)
   assert.is(Array.isArray(files), true)
   assert.equal(foundFiles, [
@@ -339,9 +397,9 @@ test('getFilePaths glob string', async () => {
     'tests/fixtures/md/transform-remote.md',
     'tests/fixtures/md/transform-toc.md',
     'tests/fixtures/md/transform-wordCount.md',
+    'tests/find.test.js',
     "tests/get-file-path.test.js",
-    'tests/index.test.js'
-  ])
+  ].sort())
 })
 
 test('getGitignoreContents', async () => {

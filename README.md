@@ -1,6 +1,6 @@
 # glob-monster
 
-File globber that understands globs or regex.
+<img align="right" width="100" height="100" src="./.github/logo.png">File globber that understands globs or regex.
 
 See [tests](./tests/) for more details.
 
@@ -8,6 +8,34 @@ See [tests](./tests/) for more details.
 
 ```
 npm install glob-monster
+```
+
+## Usage
+
+```js
+const { find, getFilePaths } = require('glob-monster')
+
+const opts = {}
+const files = await find(['**.md'], opts)
+/* files [
+  'README.md',
+  'node_modules/dequal/readme.md',
+  'node_modules/diff/README.md',
+]
+*/
+
+
+const mdxAndTestFiles = await getFilePaths(ROOT_DIR, {
+  patterns: [
+    /(.*)\.mdx?$/,
+    /\.test\.js$/,
+  ],
+  ignore: [
+    /node_modules/,
+  ],
+  excludeGitIgnore: true,
+  excludeHidden: true,
+})
 ```
 
 ## About
