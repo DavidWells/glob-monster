@@ -1,6 +1,6 @@
 {
   "name": "glob-monster",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "File globber that understands regex",
   "main": "src/index.js",
   "author": "David Wells",
