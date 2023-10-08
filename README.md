@@ -17,13 +17,19 @@ const { find, getFilePaths } = require('glob-monster')
 
 const opts = {}
 const files = await find(['**.md'], opts)
+console.log(files)
+/* [
+  'README.md',
+  'node_modules/dequal/readme.md',
+] */
+
+const opts = {}
+const filesViaRegex = await find([/\.md$/], {})
+console.log(filesViaRegex)
 /* files [
   'README.md',
   'node_modules/dequal/readme.md',
-  'node_modules/diff/README.md',
-]
-*/
-
+] */
 
 const mdxAndTestFiles = await getFilePaths(ROOT_DIR, {
   patterns: [
