@@ -1,6 +1,6 @@
 # glob-monster
 
-Moved to https://github.com/DavidWells/packages/tree/master/packages/util-globs
+> Moved to https://github.com/DavidWells/packages/tree/master/packages/util-globs
 
 <img align="right" width="100" height="100" src="./.github/logo.png">File globber that understands globs or regex.
 
